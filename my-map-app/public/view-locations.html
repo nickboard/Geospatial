@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Locations</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <div id="map" style="width: 100%; height: 600px;"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([39.8283, -98.5795], 4); // Center on the U.S.
+        
+        // Basemap layers
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map); // Default basemap
+
+        var stamenWatercolor = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.{ext}', {
+            attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+            subdomains: 'abcd',
+            ext: 'jpg'
+        });
+
+        // Layer control to switch basemaps
+        var baseMaps = {
+            "OpenStreetMap": osm,
+            "Stamen Watercolor": stamenWatercolor
+        };
+
+        L.control.layers(baseMaps).addTo(map);
+
+        // Fetch and display locations from the server...
+        async function fetchAndDisplayLocations() {
+            try {
+                const response = await fetch('/locations');
+                const locations = await response.json();
+                locations.forEach(location => {
+                    L.marker([location.lat, location.lng]).addTo(map)
+                        .bindPopup(`<b>${location.name}</b><br>${location.comments ? location.comments : ''}`);
+                });
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+            }
+        }
+
+        fetchAndDisplayLocations();
+    </script>
+</body>
+</html>

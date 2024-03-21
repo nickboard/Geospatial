@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Location</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <div id="map" style="width: 100%; height: 600px;"></div>
+    <form id="locationForm">
+        <label for="name">Location Name:</label>
+        <input type="text" id="name" name="name" required>
+        
+        <label for="type">Type:</label>
+        <input type="text" id="type" name="type" required>
+        
+        <label for="amenities">Amenities:</label>
+        <input type="text" id="amenities" name="amenities" required>
+        
+        <label for="dogFriendly">Dog Friendly (1-5):</label>
+        <input type="number" id="dogFriendly" name="dogFriendly" min="1" max="5" required>
+        
+        <label for="comments">Comments:</label>
+        <textarea id="comments" name="comments"></textarea>
+
+        <label for="Date">Date</label>
+        <input type="datetime-local" id="date" name="date" required>
+        
+        <input type="hidden" id="lat" name="lat" required>
+        <input type="hidden" id="lng" name="lng" required>
+        
+        <button type="submit">Add Location</button>
+    </form>
+    <div id="basemapSwitcher" style="position: absolute; top: 10px; right: 10px; background-color: white; padding: 5px;">
+        <h4>Basemaps</h4>
+        <label><input type="radio" name="basemap" value="osm" checked> OpenStreetMap</label><br>
+        <label><input type="radio" name="basemap" value="stamen"> Stamen Watercolor</label>
+    </div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([39.8283, -98.5795], 4); // Center on the U.S.
+        
+        var pawIcon = L.icon({
+            iconUrl: 'Paw.png', // Update the path to where your icon image is located
+            iconSize: [38, 38], // Size of the icon
+            iconAnchor: [19, 19], // Point of the icon which will correspond to marker's location
+            popupAnchor: [0, -19] // Point from which the popup should open relative to the iconAnchor
+        });
+        
+        // Basemap layers
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map); // Default basemap
+  
+  
+        var stamenWatercolor = L.tileLayer('http://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+            subdomains: 'abcd',
+            ext: 'jpg'
+        });
+
+        // Layer control to switch basemaps
+        var baseMaps = {
+            "OpenStreetMap": osm,
+            "Stamen Watercolor": stamenWatercolor
+        };
+
+        L.control.layers(baseMaps).addTo(map);
+        
+        // Basemap switcher logic
+        var basemapSwitcher = document.getElementById('basemapSwitcher');
+        basemapSwitcher.addEventListener('change', function(event) {
+            var selectedBasemap = event.target.value;
+            if (selectedBasemap === 'stamen') {
+                stamenWatercolor.addTo(map);
+                osm.remove();
+            } else {
+                osm.addTo(map);
+                stamenWatercolor.remove();
+            }
+        });
+
+        var marker;
+
+// Event listener for map click to add a paw print marker
+            map.on('click', function(e) {
+                if (marker) {
+                    marker.setLatLng(e.latlng);
+                } else {
+                    marker = L.marker(e.latlng, {
+                        icon: pawIcon, // Use the custom paw print icon
+                        draggable: true
+                    }).addTo(map);
+                    marker.on('dragend', function(event) {
+                        var position = event.target.getLatLng();
+                        document.getElementById('lat').value = position.lat;
+                        document.getElementById('lng').value = position.lng;
+                    });
+                }
+                document.getElementById('lat').value = e.latlng.lat;
+                document.getElementById('lng').value = e.latlng.lng;
+            });
+
+        document.getElementById('locationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var formData = {
+                name: document.getElementById('name').value,
+                type: document.getElementById('type').value,
+                amenities: document.getElementById('amenities').value,
+                dogFriendly: document.getElementById('dogFriendly').value,
+                comments: document.getElementById('comments').value,
+                lat: document.getElementById('lat').value,
+                lng: document.getElementById('lng').value
+            };
+
+            try {
+                const response = await fetch('/add-location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+                const data = await response.json();
+                alert('Location added successfully');
+                // Additional actions upon success
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to add the location');
+            }
+        });
+    </script>
+</body>
+</html>
